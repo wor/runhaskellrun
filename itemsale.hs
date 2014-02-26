@@ -207,7 +207,7 @@ priceTest3 = T.TestCase $ T.assertEqual messagePrefix expected input
 
 allTests = T.TestList [T.TestLabel "priceTest1"    priceTest1
                       ,T.TestLabel "priceTest2"    priceTest2
-                      ,T.TestLabel "priceTest3"    priceTest2
+                      ,T.TestLabel "priceTest3"    priceTest3
                       ,T.TestLabel "takeSetsTest1" takeSetsTest1
                       ,T.TestLabel "takeSetsTest2" takeSetsTest2
                       ,T.TestLabel "takeSetsTest3" takeSetsTest3
