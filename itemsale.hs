@@ -119,6 +119,8 @@ reportPrice set         =  putStrLn ("Bought " ++ itemCount ++ " items.")
 --
 
 itemsTV1    = [1,1,1,1,1,1]
+-- (if equals True for succeding tests, number of sets generated, list of
+-- set sizes generated)
 itemsTVEx1  = (True, 6, [1,1,1,1,1,1])
 itemsTVExP1 = (discountPrice, fullPrice, difference)
     where
