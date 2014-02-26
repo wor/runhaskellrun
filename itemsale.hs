@@ -24,7 +24,8 @@
 --
 
 import Control.Applicative ((<$>),(<*>))
-import Data.List (groupBy, sort, nub, (\\), sortBy)
+import Data.List ( groupBy, sort, nub, (\\), sortBy
+                 , mapAccumL, findIndices, delete, splitAt)
 
 import qualified Test.HUnit as T
 import qualified Test.QuickCheck as C
@@ -58,10 +59,38 @@ takeSet5 items          =  (itemset, itemsLeft)
                                itemset   = take 5 $ nub items
                                itemsLeft = items \\ itemset
 
+-- | Moves a item from sets of size 5 to set of size 3, producing two sets
+-- of size 4. The target sets are given as list of index tuples. The fst is
+-- the index to set of size 5 and the snd is the index of set of size 3.
+-- The index refer to the second [[a]] argument which is the list of item
+-- sets.
+moveItems               :: (Eq a) => [(Int,Int)] -> [[a]] -> [[a]]
+moveItems [] sets       = sets
+moveItems (ip:ips) sets = moveItems ips (moveItem ip sets)
+    where
+        moveItem :: (Eq a) => (Int,Int) -> [[a]] -> [[a]]
+        moveItem (i1, i2) sets = replace newSet2 i2 $ replace newSet1 i1 sets
+            where
+                oldSet1 = sets !! i1
+                oldSet2 = sets !! i2
+                -- oldSet1 is the larger set so this succeeds always
+                item    = head $ oldSet1 \\ oldSet2
+                newSet1 = delete item oldSet1
+                newSet2 = item : oldSet2
+                -- replace item at index at container
+                replace it ii c = (++) <$> fst <*> (it:).tail.snd $ splitAt ii c
+
 -- | Forms a list of sublists which contain unique elements up to size
 -- 5 from the original list.
 takeSets                :: (Eq a) => [a] -> [[a]]
-takeSets                =  unConcatBy takeSet5
+takeSets items          =  moveItems ips sets
+    where
+        sets = unConcatBy takeSet5 items
+        -- Find sets of size 5 and 3 and pair them for item moving, which
+        -- is done by moveItems.
+        ips  = zip <$> findIndices ((==5).length)
+                   <*> findIndices ((==3).length)
+                   $ sets
 
 
 --
