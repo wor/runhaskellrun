@@ -76,7 +76,7 @@ calculateSetPrice setSize
     | (&&) <$> (>0) <*> (<6) $ setSize = (discountPrice, fullPrice)
     | otherwise                        = error "Unkown set size."
     where
-        discountPrice = (1 - discount) * itemPrice
+        discountPrice = (1 - discount) * fullPrice
         discount      = discountsByCount !! (setSize - 1)
         fullPrice     = (fromIntegral setSize :: Double) * itemPrice
 
