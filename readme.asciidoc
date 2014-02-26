@@ -1,0 +1,4 @@
+= Run Haskell Run!
+
+Haskell playground with simple Haskell programs written to just to learn
+Haskell.
