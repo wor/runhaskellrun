@@ -1,0 +1,131 @@
+= Item Discount Problem
+
+== Problem definition
+
+A web shop sells items unspecified items with price of 8.0 (of some monetary
+unit). But if customer buys multiple different items he/she gets a price
+discount per item.
+
+* For two different items the discount is 5% from the total price of these two
+items.
+* For three different items the discount is 10% from the total price of
+these three items.
+* For four different items the discount is 20% ...
+* For five different items the discount is 25% ...
+
+Customer may buy multiple sets of discounted items and is eligible to maximum
+discount available to him/her.
+
+Final price and the amount of discount must be shown to the customer.
+
+
+== "Solution"
+
+One simple solution is to form the item sets by taking unique items, maximum
+five at a time from the available items.
+
+[source,haskell]
+-------------------------------------------
+-- | Takes at maximum of 5 unique elements from the list and returns the
+-- taken elements and whats left of the list in a tuple.
+takeSet5                :: (Eq a) => [a] -> ([a], [a])
+takeSet5 items          =  (itemset, itemsLeft)
+                           where
+                               itemset   = take 5 $ nub items
+                               itemsLeft = items \\ itemset
+-------------------------------------------
+
+And after the all the sets are recursively generated, the calculation of final
+price and the discounts becomes just matching the set size with the discount.
+
+[source,haskell]
+-------------------------------------------
+-- | discount percentages
+discountsByCount = [0.0, 0.05, 0.10, 0.20, 0.25]
+
+-- | Calculates the price of one set of items.
+-- The result is given as tuple of discounted price and the full price
+-- without the discount.
+calculateSetPrice                :: Int -> (Double, Double)
+calculateSetPrice setSize
+    | (&&) <$> (>0) <*> (<6) $ setSize = (discountPrice, fullPrice)
+    | otherwise                        = error "Unkown set size."
+    where
+        discountPrice = (1 - discount) * fullPrice
+        discount      = discountsByCount !! (setSize - 1)
+        fullPrice     = (fromIntegral setSize :: Double) * itemPrice
+-------------------------------------------
+
+Example solution code can be found from:
+https://github.com/wor/runhaskellrun/blob/b160400aa782aa96ecda1d8022d112d11b582fd1/itemsale.hs
+
+
+== a Better "Solution"
+
+At first it seems that this solution works, but it doesn't give the highest
+discount for the customer in this case. It would work if discounts by item set
+size would be linearly increasing but there is jump in the discount amount
+between sets of size 3 and 4 meaning that combination of sets of size 4 and 4
+grants more discount than combination of sets of size 5 and 3.
+
+Now the algorithm produces sets on the right, but it should produce sets on the
+left which have higher discount value in total.
+
+.Example
+-----------------------------------------------------
+[1,2,3,4,5] [1,2,3,4] [1,2,3]  => [1,2,3,4] [1,2,3,4] [1,2,3,5]
+-----------------------------------------------------
+
+Let's implement a quick fix for the current discount values by promoting sets
+of size 3 to size of 4 if a corresponding set of size 5 exists and after that
+try to find a general solution to the problem with arbitrary discounts.
+
+The code for this step can be found from:
+https://github.com/wor/runhaskellrun/blob/c0c5d9b6c93c687e1f637ec01899e178eedd6eb8/itemsale.hs
+
+[source,haskell]
+-------------------------------------------
+-- | Moves a item from sets of size 5 to set of size 3, producing two sets
+-- of size 4. The target sets are given as list of index tuples. The fst is
+-- the index to set of size 5 and the snd is the index of set of size 3.
+-- The index refer to the second [[a]] argument which is the list of item
+-- sets.
+moveItems               :: (Eq a) => [(Int,Int)] -> [[a]] -> [[a]]
+moveItems [] sets       = sets
+moveItems (ip:ips) sets = moveItems ips (moveItem ip sets)
+    where
+        moveItem :: (Eq a) => (Int,Int) -> [[a]] -> [[a]]
+        moveItem (i1, i2) sets = replace newSet2 i2 $ replace newSet1 i1 sets
+            where
+                oldSet1 = sets !! i1
+                oldSet2 = sets !! i2
+                -- oldSet1 is the larger set so this succeeds always
+                item    = head $ oldSet1 \\ oldSet2
+                newSet1 = delete item oldSet1
+                newSet2 = item : oldSet2
+                -- replace item at index at container
+                replace it ii c = (++) <$> fst <*> (it:).tail.snd $ splitAt ii c
+
+-- | Forms a list of sublists which contain unique elements up to size
+-- 5 from the original list.
+takeSets                :: (Eq a) => [a] -> [[a]]
+takeSets items          =  moveItems ips sets
+    where
+        sets = unConcatBy takeSet5 items
+        -- Find sets of size 5 and 3 and pair them for item moving, which
+        -- is done by moveItems.
+        ips  = zip <$> findIndices ((==5).length)
+                   <*> findIndices ((==3).length)
+                   $ sets
+-------------------------------------------
+
+The idea here is to find all pairs of sets of size 5 and 3 from the set list
+produced by takeSet5. The sets are presented by their indices in the list of
+sets, so moveItems takes a list of index tuples and the list of sets. The
+moveItems then moves a item between the sets indicated by the index tuples,
+making them both the size of 4. After processing all the index tuples and the
+corresponding sets it returns a new list of sets containing the transformed sets
+instead of the originals. All other sets in the list are left untouched.
+
+The next step is to make this general, so that it works with different
+discounts..
