@@ -144,6 +144,15 @@ itemsTVExP3 = (discountPrice, fullPrice, difference)
         fullPrice     = (sum [1,2,5,5] * itemPrice)
         difference    = fullPrice - discountPrice
 
+-- Test the forming of sets of size [4,4,4] instead of size [5,4,3]
+itemsTV4    = [1,2,3,4,5,1,2,3,4,1,2,3]
+itemsTVEx4  = (True, 3, [4,4,4])
+itemsTVExP4 = (discountPrice, fullPrice, difference)
+    where
+        discountPrice = 3*(0.80*4*itemPrice)
+        fullPrice     = (sum [4,4,4] * itemPrice)
+        difference    = fullPrice - discountPrice
+
 -- Testcase can be run with T.runTestTT
 
 -- | Tests that items stay the same, that formed set count is right and
@@ -184,6 +193,18 @@ takeSetsTest3 = T.TestCase $ T.assertEqual messagePrefix expected input
         subCount      = length result
         subLengths    = sort $ length <$> result
 
+takeSetsTest4 :: T.Test
+takeSetsTest4 = T.TestCase $ T.assertEqual messagePrefix expected input
+    where
+        messagePrefix = "takeSets test 4"
+        input         = (isSame, subCount, subLengths)
+        expected      = itemsTVEx4
+        --
+        result        = takeSets itemsTV4
+        isSame        = (sort $ concat result) == (sort itemsTV4)
+        subCount      = length result
+        subLengths    = sort $ length <$> result
+
 -- | Test calculated prices for the items
 priceTest1 :: T.Test
 priceTest1 = T.TestCase $ T.assertEqual messagePrefix expected input
@@ -206,13 +227,21 @@ priceTest3 = T.TestCase $ T.assertEqual messagePrefix expected input
         input         = calculatePrice $ takeSets itemsTV3
         expected      = itemsTVExP3
 
+priceTest4 :: T.Test
+priceTest4 = T.TestCase $ T.assertEqual messagePrefix expected input
+    where
+        messagePrefix = "priceTests test 4"
+        input         = calculatePrice $ takeSets itemsTV4
+        expected      = itemsTVExP4
 
 allTests = T.TestList [T.TestLabel "priceTest1"    priceTest1
                       ,T.TestLabel "priceTest2"    priceTest2
                       ,T.TestLabel "priceTest3"    priceTest3
+                      ,T.TestLabel "priceTest4"    priceTest4
                       ,T.TestLabel "takeSetsTest1" takeSetsTest1
                       ,T.TestLabel "takeSetsTest2" takeSetsTest2
                       ,T.TestLabel "takeSetsTest3" takeSetsTest3
+                      ,T.TestLabel "takeSetsTest4" takeSetsTest4
                       ]
 
 -- | Checks that takeSets produces sets ordered by length, largest first.
