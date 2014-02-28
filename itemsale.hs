@@ -24,6 +24,7 @@
 --
 
 import Control.Applicative ((<$>),(<*>))
+import Control.Monad (join)
 import Data.List ( groupBy, sort, nub, (\\), sortBy
                  , mapAccumL, findIndices, delete, splitAt)
 
@@ -144,164 +145,93 @@ reportPrice set         =  putStrLn ("Bought " ++ itemCount ++ " items.")
 
 --
 -- HUnit Tests
--- TODO: whoah these need cleaning..
+-- TODO: clean a bit more
 --
 
-itemsTV1    = [1,1,1,1,1,1]
--- (if equals True for succeding tests, number of sets generated, list of
--- set sizes generated)
-itemsTVEx1  = (True, 6, [1,1,1,1,1,1])
-itemsTVExP1 = (discountPrice, fullPrice, difference)
-    where
-        discountPrice = fromIntegral (length itemsTV1) * itemPrice
-        fullPrice     = fromIntegral (sum itemsTV1) * itemPrice
-        difference    = fullPrice - discountPrice
+data UTest = UTest { uItems           :: [Int]
+                   , uSetSizes        :: [Int]
+                   , uSucceeds        :: Bool
+                   , uDiscountPrice   :: Double
+                   , uFullPrice       :: Double
+                   , uDiffPrice       :: Double
+                   } deriving (Show)
 
-itemsTV2    = [1,2]
-itemsTVEx2  = (True, 1, [2])
-itemsTVExP2 = (discountPrice, fullPrice, difference)
-    where
-        discountPrice = 0.95*2*itemPrice
-        fullPrice     = sum [2] * itemPrice
-        difference    = fullPrice - discountPrice
+createTestCaseData :: [Int] -> [Int] -> Bool -> UTest
+createTestCaseData items setSizes succeeds =
+        UTest { uItems         = items
+              , uSetSizes      = setSizes
+              , uSucceeds      = succeeds
+              , uDiscountPrice = discPrice
+              , uFullPrice     = sum $ fullPrice setSizes
+              , uDiffPrice     = diffPrice
+              }
+        where
+            discPrice = sum $ zipWith (*) <$> map ((1-).d) <*> fullPrice $ setSizes
+            fullPrice = map ((*itemPrice).fromIntegral)
+            diffPrice = subtract discPrice $ sum $ fullPrice setSizes
+            d         = ((!!) discountsByCount) <$> (subtract 1)
 
-itemsTV3    = [1,2,3,3,3,3,4,5,6,2,5,8,7]
-itemsTVEx3  = (True, 4, [1,2,5,5])
-itemsTVExP3 = (discountPrice, fullPrice, difference)
+-- | Creates a test which tests that items stay the same, that formed set
+-- count is right and finally that the formed set lengths are right.
+createTestCase :: UTest -> String -> T.Test
+createTestCase td prefix = T.TestCase $ T.assertEqual messagePrefix expected input
     where
-        discountPrice = itemPrice+(0.95*2*itemPrice)+2*(0.75*5*itemPrice)
-        fullPrice     = (sum [1,2,5,5] * itemPrice)
-        difference    = fullPrice - discountPrice
-
--- Test the forming of sets of size [4,4,4] instead of size [5,4,3]
-itemsTV4    = [1,2,3,4,5,1,2,3,4,1,2,3]
-itemsTVEx4  = (True, 3, [4,4,4])
-itemsTVExP4 = (discountPrice, fullPrice, difference)
-    where
-        discountPrice = 3*(0.80*4*itemPrice)
-        fullPrice     = (sum [4,4,4] * itemPrice)
-        difference    = fullPrice - discountPrice
-
--- Test the forming of sets of size [4,4,4,4,4,4]
-itemsTV5    = [1,2,3,4,5,1,2,3,4,1,2,3] ++ [1,2,3,4,5,1,2,3,4,1,2,3]
-itemsTVEx5  = (True, 6, [4,4,4,4,4,4])
-itemsTVExP5 = (discountPrice, fullPrice, difference)
-    where
-        discountPrice = 6*(0.80*4*itemPrice)
-        fullPrice     = (sum [4,4,4,4,4,4] * itemPrice)
-        difference    = fullPrice - discountPrice
-
--- Testcase can be run with T.runTestTT
-
--- | Tests that items stay the same, that formed set count is right and
--- finally that formed set lengths are right.
-takeSetsTest1 :: T.Test
-takeSetsTest1 = T.TestCase $ T.assertEqual messagePrefix expected input
-    where
-        messagePrefix = "takeSets test 1"
+        messagePrefix = prefix
         input         = (isSame, subCount, subLengths)
-        expected      = itemsTVEx1
+        expected      = (uSucceeds td, length $ uSetSizes td, uSetSizes td)
         --
-        result        = takeSets itemsTV1
-        isSame        = (sort $ concat result) == (sort itemsTV1)
+        result        = takeSets $ uItems td
+        isSame        = (sort $ concat result) == (sort $ uItems td)
         subCount      = length result
         subLengths    = sort $ length <$> result
 
-takeSetsTest2 :: T.Test
-takeSetsTest2 = T.TestCase $ T.assertEqual messagePrefix expected input
+createUPriceTest :: UTest -> String -> T.Test
+createUPriceTest td prefix = T.TestCase $ T.assertEqual messagePrefix expected input
     where
-        messagePrefix = "takeSets test 2"
-        input         = (isSame, subCount, subLengths)
-        expected      = itemsTVEx2
-        --
-        result        = takeSets itemsTV2
-        isSame        = (sort $ concat result) == (sort itemsTV2)
-        subCount      = length result
-        subLengths    = sort $ length <$> result
+        messagePrefix = prefix
+        input         = calculatePrice $ takeSets $ uItems td
+        expected      = (uDiscountPrice td, uFullPrice td, uDiffPrice td)
 
-takeSetsTest3 :: T.Test
-takeSetsTest3 = T.TestCase $ T.assertEqual messagePrefix expected input
+
+testData1   = createTestCaseData [1,1,1,1,1,1] [1,1,1,1,1,1] True
+uTest1      = createTestCase testData1 "takeSets test 1"
+uPriceTest1 = createUPriceTest testData1 "price test 1"
+
+testData2   = createTestCaseData [1,2] [2] True
+uTest2      = createTestCase testData2 "takeSets test 2"
+uPriceTest2 = createUPriceTest testData2 "price test 2"
+
+testData3   = createTestCaseData [1,2,3,3,3,3,4,5,6,2,5,8,7] [1,2,5,5] True
+uTest3      = createTestCase testData2 "takeSets test 3"
+uPriceTest3 = createUPriceTest testData3 "price test 3"
+
+testData4   = createTestCaseData [1,2,3,4,5,1,2,3,4,1,2,3] [4,4,4] True
+uTest4      = createTestCase testData2 "takeSets test 4"
+uPriceTest4 = createUPriceTest testData4 "price test 4"
+
+testData5   = createTestCaseData (double $ uItems testData4)
+                                 (double $ uSetSizes testData4) True
     where
-        messagePrefix = "takeSets test 3"
-        input         = (isSame, subCount, subLengths)
-        expected      = itemsTVEx3
-        --
-        result        = takeSets itemsTV3
-        isSame        = (sort $ concat result) == (sort itemsTV3)
-        subCount      = length result
-        subLengths    = sort $ length <$> result
+        double = join (++)
+uTest5      = createTestCase testData2 "takeSets test 5"
+uPriceTest5 = createUPriceTest testData5 "price test 5"
 
-takeSetsTest4 :: T.Test
-takeSetsTest4 = T.TestCase $ T.assertEqual messagePrefix expected input
-    where
-        messagePrefix = "takeSets test 4"
-        input         = (isSame, subCount, subLengths)
-        expected      = itemsTVEx4
-        --
-        result        = takeSets itemsTV4
-        isSame        = (sort $ concat result) == (sort itemsTV4)
-        subCount      = length result
-        subLengths    = sort $ length <$> result
 
-takeSetsTest5 :: T.Test
-takeSetsTest5 = T.TestCase $ T.assertEqual messagePrefix expected input
-    where
-        messagePrefix = "takeSets test 5"
-        input         = (isSame, subCount, subLengths)
-        expected      = itemsTVEx5
-        --
-        result        = takeSets itemsTV5
-        isSame        = (sort $ concat result) == (sort itemsTV5)
-        subCount      = length result
-        subLengths    = sort $ length <$> result
-
--- | Test calculated prices for the items
-priceTest1 :: T.Test
-priceTest1 = T.TestCase $ T.assertEqual messagePrefix expected input
-    where
-        messagePrefix = "priceTests test 1"
-        input         = calculatePrice $ takeSets itemsTV1
-        expected      = itemsTVExP1
-
-priceTest2 :: T.Test
-priceTest2 = T.TestCase $ T.assertEqual messagePrefix expected input
-    where
-        messagePrefix = "priceTests test 2"
-        input         = calculatePrice $ takeSets itemsTV2
-        expected      = itemsTVExP2
-
-priceTest3 :: T.Test
-priceTest3 = T.TestCase $ T.assertEqual messagePrefix expected input
-    where
-        messagePrefix = "priceTests test 3"
-        input         = calculatePrice $ takeSets itemsTV3
-        expected      = itemsTVExP3
-
-priceTest4 :: T.Test
-priceTest4 = T.TestCase $ T.assertEqual messagePrefix expected input
-    where
-        messagePrefix = "priceTests test 4"
-        input         = calculatePrice $ takeSets itemsTV4
-        expected      = itemsTVExP4
-
-priceTest5 :: T.Test
-priceTest5 = T.TestCase $ T.assertEqual messagePrefix expected input
-    where
-        messagePrefix = "priceTests test 5"
-        input         = calculatePrice $ takeSets itemsTV5
-        expected      = itemsTVExP5
-
-allTests = T.TestList [T.TestLabel "priceTest1"    priceTest1
-                      ,T.TestLabel "priceTest2"    priceTest2
-                      ,T.TestLabel "priceTest3"    priceTest3
-                      ,T.TestLabel "priceTest4"    priceTest4
-                      ,T.TestLabel "priceTest5"    priceTest5
-                      ,T.TestLabel "takeSetsTest1" takeSetsTest1
-                      ,T.TestLabel "takeSetsTest2" takeSetsTest2
-                      ,T.TestLabel "takeSetsTest3" takeSetsTest3
-                      ,T.TestLabel "takeSetsTest4" takeSetsTest4
-                      ,T.TestLabel "takeSetsTest5" takeSetsTest5
+allTests = T.TestList [T.TestLabel "PriceTest1"    uPriceTest1
+                      ,T.TestLabel "PriceTest2"    uPriceTest2
+                      ,T.TestLabel "PriceTest3"    uPriceTest3
+                      ,T.TestLabel "PriceTest4"    uPriceTest4
+                      ,T.TestLabel "PriceTest5"    uPriceTest5
+                      ,T.TestLabel "takeSetsTest1" uTest1
+                      ,T.TestLabel "takeSetsTest2" uTest2
+                      ,T.TestLabel "takeSetsTest3" uTest3
+                      ,T.TestLabel "takeSetsTest4" uTest4
+                      ,T.TestLabel "takeSetsTest5" uTest5
                       ]
+
+--
+-- QuickTests
+--
 
 -- | Checks that takeSets produces sets ordered by length, largest first.
 -- This is a QuickCheck check and can be run with C.quickCheck
