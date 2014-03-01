@@ -1,5 +1,8 @@
 = Item Discount Problem
 
+Disclaimer: This is my second ever, over ten lines Haskell program.. so it's
+not very functional nor haskelish. Let's see if it improves as I learn more.
+
 == Problem definition
 
 A web shop sells items unspecified items with price of 8.0 (of some monetary
