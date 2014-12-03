@@ -131,4 +131,79 @@ corresponding sets it returns a new list of sets containing the transformed sets
 instead of the originals. All other sets in the list are left untouched.
 
 The next step is to make this general, so that it works with different
-discounts..
+discounts.
+
+== The Final Solution
+
+
+Let's proceed step by step, trial by error to find at least one possible
+general solution. At first we can just generalize the current solution instead
+of trying right away to redesign it completely.
+
+Let's make a function to indentify all group pairs, in which item promotion
+gives us a better discount.
+
+//discountsByCount = [0.0, 0.05, 0.10, 0.20, 0.25]
+ head $ tail $ L.tails l
+let ll = zipWith subtract l (head $ tail $ L.tails l) -- tail l
+let ll = zipWith subtract l $ tail l
+let ll2 = zip (tail ll) [2..length ll]
+-- Does sort work the same way for tuples?
+sortBy (\(x,_) (y,_) -> compare x y) ll2
+--> list where index says the place of promotion for example 3 means from group
+of size 3 and the sign of fst says the direction, positive meaning from the
+index group to larger group and negative the other direction.
+
+Next group ll2 by the (abs discount_value)
+Between these group of indices usefull (change making) promotion can be made.
+
+sorted by discount abs ammount
+A <-> B <-> C
+
+[0.0, 0.05, 0.1, 0.15, 0.21, 0.30, 0.05, 0.14]
+
+groupBy :: (a -> a -> Bool) -> [a] -> [[a]]
+
+groupBy
+
+
+
+// get double, index tuple: zip (tail l) [1..length l]
+// Sort tupple by fst
+sortBy \((x1,_) (x2,_) = compare (abs x1) (abs x2))
+
+
+A case where two inputs are first processed separately and then piped to as
+two parameters for another function.
+1:        2:
+x|         |
+y|==> abs  |==> compare
+
+1:
+join (***) abs (-1,-2)
+2:
+uncurry compare
+::
+uncurry compare $ join (***) abs (-1,-2)
+
+
+-- faSort = curry (join (***) fst) (1,2) (3,4)
+faSort (a,a) -> (a,a) -> ordering
+faSort = curry (join (***) fst)
+
+(fst *** fst) ((1,2),(2,3))
+
+
+--> all same
+(first abs >>> second abs) $ curry (join (***) fst) (-1,2) (-3,4)
+(abs *** abs) $ curry (join (***) fst) (-1,2) (-3,4)
+(join (***) abs) $ curry (join (***) fst) (-1,2) (-3,4)
+
+--> let's move inside arrows
+(join (***) fst >>> join (***) abs) $ ((-1,2),(-3,4))
+curry (join (***) fst >>> join (***) abs) (-1,2) (-3,4)
+curry (join (***) fst >>> join (***) abs >>> uncurry compare) (-4,2) (-3,4)
+
+
+
+//abs sort (store sign for direction)

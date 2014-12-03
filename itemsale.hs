@@ -14,6 +14,9 @@
 -- Final price and the amount of discount must be shown to the customer.
 --
 -- --
+-- Required dependencies:
+-- hunit, quickcheck, ieee754
+--
 -- Usage: :load <this file> in ghci and for example:
 --
 -- -- Run all tests
@@ -27,7 +30,7 @@ import Control.Applicative ((<$>),(<*>))
 import Control.Monad (join)
 import Data.List ( groupBy, sort, nub, (\\), sortBy
                  , mapAccumL, findIndices, delete, splitAt)
-
+import Data.AEq ((~==))
 import qualified Test.HUnit as T
 import qualified Test.QuickCheck as C
 
