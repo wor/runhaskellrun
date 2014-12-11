@@ -1,0 +1,18 @@
+= TODO
+
+* Almost equal comparison with float values in the tests
+
+x =~ y = abs ( x - y ) &lt; (1.0e-8 :: Double)
+
+
+class AEq a where
+    (=~) :: a -> a -> Bool
+
+instance AEq Double where
+    x =~ y = abs ( x - y ) &lt; (1.0e-8 :: Double)
+
+(@=~?) :: (Show a, AEq a) => a -> a -> HU.Assertion
+(@=~?) expected actual  = expected =~ actual HU.@? assertionMsg
+    where
+      assertionMsg = "Expected : " ++ show expected ++
+                     "\nActual   : " ++ show actua
