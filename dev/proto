@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*- vim:fenc=utf-8:ft=python:et:sw=4:ts=4:sts=4
+"""module docstring"""
+__author__ = "Esa Määttä"
+__copyright__ = "Copyright 2011, Esa Määttä"
+__credits__ = ["Esa Määttä"]
+#__license__ = "GPL3"
+__version__ = "0.0.1"
+__maintainer__ = "Esa Määttä"
+__email__ = "esa.maatta@iki.fi"
+#__status__ = "Production"
+
+import sys
+import logging
+import itertools
+import functools
+
+
+def get_move_value(values, move):
+    to_i = move[1]-1
+    from_i = move[0]-1
+    return (values[to_i] - values[from_i])
+
+def get_move_pair_value(values, move_pair):
+    to_move = move_pair[1]
+    from_move = move_pair[0]
+    return (get_move_value(values, to_move) + get_move_value(values, from_move))
+
+def get_uniq(count, items):
+    """
+    """
+    def uniq_test_add(uniques, item):
+
+        if len(items) and len(uniques) < count and item not in uniques:
+            uniques.add(item)
+            return False
+        return True
+
+    uniques = set()
+    items = [item for item in items if uniq_test_add(uniques, item)]
+    return uniques, items
+
+def initial_assignment(values, items):
+    """
+    Assigns given items to groups to be containing only unique items. The
+    strategy is to try to fill the groups with largest value first. This of
+    course doesn't provide optimal fit but might be good starting point.
+
+    list.
+
+    """
+    values_index_sort = sorted(range(len(values)), key=lambda i: values[i])
+
+    print(items)
+    item_ass = {}
+
+    while True:
+        index = 0
+        while True:
+            size = values_index_sort[index]
+            uniques, items = get_uniq(size, items)
+            if len(uniques) == size:
+                item_ass[size] = uniques
+            else:
+
+                
+                
+
+    print("items after:")
+    print(items)
+    print("uniques takens:")
+    print(uniques)
+
+
+def act():
+    """docstring"""
+    log = logging.getLogger(__name__)
+    log.debug("jee")
+    values = [0.0, 0.50, 0.45, 0.75, 0.76, 0.77, 0.78, 0.79, 0.78, 0.1]
+    #comb = itertools.combinations(range(1,len(values)), 2)
+    #comb2 = itertools.combinations_with_replacement(range(1,len(values)), 2)
+    moves = list(itertools.permutations(range(1,len(values)+1), 2))
+
+    up_moves = [ m for m in moves if m[0] < m[1] ]
+    down_moves = [ m for m in moves if m[0] > m[1] ]
+
+    assert(len(up_moves) + len(down_moves) == len(moves))
+
+    print("--- UP moves (count: {}) ---".format(len(up_moves)))
+    print(up_moves)
+    print("--- DOWN moves (count: {}) ---".format(len(down_moves)))
+    print(down_moves)
+
+    # Get move value using `values`
+    move_value = functools.partial(get_move_value, values)
+    move_pair_value = functools.partial(get_move_pair_value, values)
+
+    # Get moves of different length
+    up_moves_by_len = {}
+    for lens in range(1, len(values)):
+        up_moves_by_len[lens] = sorted([ m for m in up_moves if abs(m[0]-m[1])==lens ], key=move_value, reverse=True)
+    print ("--- UP moves by len sorted ---")
+    print(up_moves_by_len)
+    print(list(map(move_value, up_moves_by_len[1])))
+
+    down_moves_by_len = {}
+    for lens in range(1, len(values)):
+        down_moves_by_len[lens] = sorted([ m for m in down_moves if abs(m[0]-m[1])==lens ], key=move_value, reverse=True)
+    print ("--- DOWN moves by len sorted ---")
+    print(down_moves_by_len)
+    print(list(map(move_value, down_moves_by_len[1])))
+
+    print("--- All (theoritically available) positive action move pairs from len 1 ---")
+    # example highest move value
+    print(move_pair_value((down_moves_by_len[1][0], up_moves_by_len[1][0])))
+    # TODO: list(itertools.permutations(
+    items = [1,2,3,4,5,6,7,8,9,10,1,2,3,4,5]
+    initial_assignment(values, items)
+
+    print("=================")
+    up_moves_sorted = sorted(up_moves, key=move_value)
+    print("--- UP moves sorted (count: {}) ---".format(len(up_moves_sorted)))
+    print(up_moves_sorted)
+
+    print(list(map(move_value, up_moves_sorted)))
+
+
+
+    return True
+
+
+def process_cmd_line(inputs=sys.argv[1:], parent_parsers=list()):
+    """
+    Processes command line arguments.
+
+    Returns a namespace with all arguments.
+
+    Parameters:
+
+    - inputs: list. List of arguments to be parsed.
+    - parent_parsers: list. List of parent parsers which are used as base.
+    """
+    import argparse
+    import wor.argparse.actions
+
+    # initialize the parser object:
+    parser = argparse.ArgumentParser(
+            parents=parent_parsers,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            description="Program description.")
+
+    # define arguments and options here:
+    #parser.add_argument(
+    #    '-f', '--flag',
+    #    action='store_true',
+    #    dest='flag', default=False,
+    #    help="Flag argument.")
+
+    #parser.add_argument(
+    #    '-r', '--regex',
+    #    #nargs='+',
+    #    type=str,
+    #    default=r"\.(jpg|png|jpeg|tiff|tif)",
+    #    help="Filename match regex example.")
+
+    parser.add_argument(
+        '-v',
+        nargs='?',
+        default=0,
+        action=wor.argparse.actions.Verbose_action,
+        dest='verbose',
+        help="Verbosity level specifier.")
+
+    parser.add_argument(
+        '-q',
+        nargs='?',
+        action=wor.argparse.actions.Quiet_action,
+        dest='verbose',
+        help="Be more quiet, negatively affects verbosity level.")
+
+
+    #parser.add_argument(
+    #    'filename',
+    #    metavar='FILENAME',
+    #    #nargs=1, # If defined then a list is produced
+    #    help='Positional argument.')
+
+    return parser.parse_args(inputs)
+
+
+def main():
+    """
+    Main entry to the program when used from command line. Registers default
+    signals and processes command line arguments from sys.argv.
+    """
+    import signal
+    import wor.utils
+
+    def term_sig_handler(signum, frame):
+        """Handles terminating signal."""
+        print()
+        sys.exit(1)
+
+    signal.signal(signal.SIGINT, term_sig_handler) # for ctrl+c
+
+    args = process_cmd_line()
+
+    # Init module level logger with given verbosity level
+    lformat = '%(levelname)s:%(funcName)s:%(lineno)s: %(message)s'
+    logging.basicConfig(
+            level=wor.utils.convert_int_to_logging_level(args.verbose),
+            format=lformat)
+
+    del args.verbose
+
+    return 0 if act(**args.__dict__) else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
